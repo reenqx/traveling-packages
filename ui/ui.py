@@ -4,13 +4,12 @@ import openai
 import os
 import requests
 from dotenv import load_dotenv
-from openai import OpenAI  # OpenAI Python library to make API calls
+from openai import OpenAI
 
 # === โหลดค่า API Key จาก .env ===
 load_dotenv()
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 openai_api_key = os.getenv("OPENAI_API_KEY")
-
 
 # === ตั้งค่า Layout ของ Streamlit ===
 st.set_page_config(
@@ -19,37 +18,40 @@ st.set_page_config(
     layout="wide",
 )
 
-# === ส่วนหัวของเว็บไซต์ ===
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background-image: url('https://cdn.pixabay.com/photo/2016/11/29/03/20/thailand-1867228_1280.jpg');
-        background-size: cover;
-        background-attachment: fixed;
-        background-position: center;
-    }
-    h1 {
-        text-align: center;
-        color: #2c3e50;
-        font-size: 3rem;
-        font-weight: bold;
-        margin-top: 20px;
-    }
-    .info-box {
-        background-color: rgba(255, 255, 255, 0.9);
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# === สร้างตัวแปรสำหรับพื้นหลัง ===
+background_image_url = None
 
-st.markdown("<h1>🌟 ระบบแนะนำแผนการท่องเที่ยว</h1>", unsafe_allow_html=True)
+# === ส่วนหัวของเว็บไซต์ ===
+def set_background(image_url):
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-image: url("{image_url}");
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+        }}
+        h1 {{
+            text-align: center;
+            color: #ffffff;
+            font-size: 3rem;
+            font-weight: bold;
+            margin-top: 20px;
+        }}
+        .info-box {{
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # === ส่วน UI เลือกข้อมูล ===
+st.markdown("<h1>🌟 ระบบแนะนำแผนการท่องเที่ยว</h1>", unsafe_allow_html=True)
 with st.container():
     st.markdown('<div class="info-box">', unsafe_allow_html=True)
 
@@ -120,28 +122,18 @@ if st.button("ค้นหาแผนการท่องเที่ยว"):
                     model="dall-e-3",
                     prompt=prompt,
                     n=1,
-                    size="1024x1792",
+                    size="1024x1024",
                 )
 
                 # ดึง URL ของรูปภาพ
                 image_url = generation_response.data[0].url
 
-                # สร้างไดเรกทอรีสำหรับเก็บรูปภาพ
-                image_dir_name = "images"
-                image_dir = os.path.join(os.getcwd(), image_dir_name)
-                if not os.path.isdir(image_dir):
-                    os.mkdir(image_dir)
-
-                # บันทึกรูปภาพ
-                generated_image_name = f"{province}_{activity_type}.png"
-                generated_image_filepath = os.path.join(image_dir, generated_image_name)
-                generated_image = requests.get(image_url).content
-
-                with open(generated_image_filepath, "wb") as image_file:
-                    image_file.write(generated_image)
+                # ใช้รูปภาพที่สร้างเป็นพื้นหลัง
+                background_image_url = image_url
+                set_background(background_image_url)
 
                 # แสดงภาพที่สร้าง
-                st.image(generated_image_filepath, caption=f"ภาพสถานที่ใน {province} ({activity_type})")
+                st.image(image_url, caption=f"ภาพสถานที่ใน {province} ({activity_type})")
 
         except Exception as e:
             st.error(f"เกิดข้อผิดพลาด: {e}")
@@ -150,7 +142,7 @@ if st.button("ค้นหาแผนการท่องเที่ยว"):
 st.markdown(
     """
     <hr style="border: 1px solid #ccc;">
-    <footer style="text-align: center; color: #777; font-size: 0.9rem;">
+    <footer style="text-align: center; color: #ffffff; font-size: 0.9rem;">
         © 2025 ระบบแนะนำแผนการท่องเที่ยว | พัฒนาโดย Yuki
     </footer>
     """,
