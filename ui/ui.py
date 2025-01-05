@@ -1,149 +1,173 @@
 import streamlit as st
+from PIL import Image
 from groq import Groq
 import openai
 import os
-import requests
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# === โหลดค่า API Key จาก .env ===
+
+# === Set Layout of Streamlit ===
+st.set_page_config(page_title="แนะนำแผนการท่องเที่ยว", page_icon="🌍", layout="wide")
+
+# === Load API Keys ===
 load_dotenv()
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# === ตั้งค่า Layout ของ Streamlit ===
-st.set_page_config(
-    page_title="แนะนำแผนการท่องเที่ยว",
-    page_icon="🗺️",
-    layout="wide",
+# === Background Image ===
+background_image_url = "https://cbtthailand.dasta.or.th/upload-file-api/Resources/RelateAttraction/Images/RAT400021/1.jpeg"
+
+st.markdown(
+    f"""
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+    .stApp {{
+        background-image: url('{background_image_url}');
+        background-size: cover;
+        background-attachment: fixed;
+        background-position: center;
+        font-family: 'Arial', sans-serif;
+        color: #333;
+    }}
+    .spacing {{
+        margin-top: 70px;
+    }}
+    .distance {{
+        margin-top: 15px;
+        margin-bottom: 0px;
+        padding-bottom: 0px;
+    }}
+    .header {{
+        text-align: center;
+        margin-bottom: 30px;
+    }}
+    .result-box {{
+        border: 2px solid #ddd;
+        padding: 20px;
+        border-radius: 12px;
+        background-color: rgba(255, 255, 255, 0.75);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease-in-out;
+    }}
+    .result-box:hover {{
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }}
+
+    footer {{
+        text-align: center;
+        color: #777;
+        font-size: 0.9rem;
+        padding: 10px 0;
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 6px;
+        margin-top: 40px;
+    }}
+    footer a {{
+        color: #007bff;
+        text-decoration: none;
+    }}
+    footer a:hover {{
+        text-decoration: underline;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
-# === สร้างตัวแปรสำหรับพื้นหลัง ===
-background_image_url = None
+# === Header ===
+st.markdown("<h1 class='header'>🌟 ระบบแนะนำแผนการท่องเที่ยว</h1>", unsafe_allow_html=True)
 
-# === ส่วนหัวของเว็บไซต์ ===
-def set_background(image_url):
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-            background-image: url("{image_url}");
-            background-size: cover;
-            background-attachment: fixed;
-            background-position: center;
-        }}
-        h1 {{
-            text-align: center;
-            color: #ffffff;
-            font-size: 3rem;
-            font-weight: bold;
-            margin-top: 20px;
-        }}
-        .info-box {{
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+# === Input Form ===
+with st.container():  # ใช้ container เป็นกล่องรอบคอลัมน์
+    st.markdown('<div class="form-container  !important;">',unsafe_allow_html=True)
 
-# === ส่วน UI เลือกข้อมูล ===
-st.markdown("<h1>🌟 ระบบแนะนำแผนการท่องเที่ยว</h1>", unsafe_allow_html=True)
-with st.container():
-    st.markdown('<div class="info-box">', unsafe_allow_html=True)
+    col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 1.5])
 
-    # เลือกจังหวัด
-    province = st.selectbox(
-        "🌍 เลือกจังหวัดที่ต้องการท่องเที่ยว",
-        ("ขอนแก่น", "อุดรธานี", "นครพนม", "พิษณุโลก", "บุรีรัมย์"),
-    )
+    with col1:
+        st.markdown("<div class='distance'><i class='bi bi-geo-alt'></i> Where to?</div>", unsafe_allow_html=True)
+        province = st.selectbox("", ["ขอนแก่น", "นครพนม", "นครศรีธรรมราช", "บุรีรัมย์", "เลย"])
 
-    # เลือกจำนวนวัน
-    days = st.slider(
-        "📅 จำนวนวันที่คุณต้องการไปเที่ยว", 
-        min_value=1, 
-        max_value=7, 
-        value=3
-    )
+    with col2:
+        st.markdown("<div class='distance'><i class='bi bi-calendar'></i> Days </div>", unsafe_allow_html=True,)
+        days = st.number_input("", min_value=1, step=1, value=3, format="%d")
 
-    # กรอกงบประมาณ
-    budget = st.number_input(
-        "💰 กรอกงบประมาณ (บาท)", 
-        min_value=1000, 
-        step=1000, 
-        value=5000,
-        help="กรุณากรอกงบประมาณที่คุณมีสำหรับการเดินทาง"
-    )
-
-    # ประเภทสถานที่ท่องเที่ยว
-    activity_type = st.selectbox(
-        "🗺️ เลือกประเภทสถานที่ที่ต้องการเที่ยว",
-        ("ธรรมชาติ", "เมือง", "วัฒนธรรม", "เอกซ์ตรีม", "ชิล ๆ คาเฟ่"),
-    )
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# === ปุ่มค้นหาแผนการท่องเที่ยว ===
-if st.button("ค้นหาแผนการท่องเที่ยว"):
-    with st.spinner("กำลังประมวลผล..."):
-        try:
-            # === สร้างข้อความคำถามสำหรับ Groq ===
-            query = f"""
-            ช่วยแนะนำแผนการท่องเที่ยวในจังหวัด {province} 
-            สำหรับจำนวน {days} วัน งบประมาณ {budget} บาท 
-            และประเภทการเที่ยว {activity_type}
+    with col3:
+        st.markdown(
             """
-            chat_completion = groq_client.chat.completions.create(
-                messages=[{"role": "user", "content": query}],
-                model="llama-3.1-70b-versatile",
-            )
+            <div class='distance'><i class='bi bi-compass'></i> Types</div></div>
+            <style>
+            .stExpander {
+                background-color: white !important;
+                border-radius: 8px;
+                margin-top: 30px;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+        with st.expander("Types"):
+            activity_nature = st.checkbox("ธรรมชาติ", key="activity_nature")
+            activity_city = st.checkbox("เมือง", key="activity_city")
+            activity_culture = st.checkbox("วัฒนธรรม", key="activity_culture")
+            activity_extreme = st.checkbox("เอกซ์ตรีม", key="activity_extreme")
+            activity_cafe = st.checkbox("ชิล ๆ คาเฟ่", key="activity_cafe")
 
-            # === แสดงผลแผนการท่องเที่ยว ===
-            st.markdown('<div class="info-box">', unsafe_allow_html=True)
-            st.subheader("✨ แผนการท่องเที่ยวที่แนะนำ:")
-            st.success(chat_completion.choices[0].message.content)
-            st.markdown('</div>', unsafe_allow_html=True)
+    with col4:
+        st.markdown("<div class='distance'><i class='bi bi-cash'></i> Price</div>", unsafe_allow_html=True)
+        budget = st.selectbox("", ["Low to High", "Hight to Low"])
 
-            # === เพิ่มการเจนรูปภาพ ===
-            with st.spinner("กำลังสร้างภาพสถานที่..."):
-                # สร้าง prompt สำหรับการเจนรูปภาพ
-                prompt = f"""
-                ภาพสถานที่ท่องเที่ยวในจังหวัด {province} 
-                ที่เหมาะสำหรับการท่องเที่ยว {activity_type} 
-                เป็นเวลา {days} วัน
+    with col5:
+        st.markdown("<div class='spacing'></div>", unsafe_allow_html=True)
+        search = st.button("Search", key="search")
+    st.markdown("</div>", unsafe_allow_html=True) 
+
+# === Process User Input ===
+if search:
+    if not province or not days or not (activity_nature or activity_city or activity_culture or activity_extreme or activity_cafe) or not budget:
+        st.error("กรุณาเลือกข้อมูลให้ครบทุกช่องก่อนเริ่มค้นหา!")
+    else:
+        with st.spinner("กำลังประมวลผล..."):
+            try:
+                activity_types = []
+                if activity_nature:
+                    activity_types.append("ธรรมชาติ")
+                if activity_city:
+                    activity_types.append("เมือง")
+                if activity_culture:
+                    activity_types.append("วัฒนธรรม")
+                if activity_extreme:
+                    activity_types.append("เอกซ์ตรีม")
+                if activity_cafe:
+                    activity_types.append("ชิล ๆ คาเฟ่")
+
+                query = f"""
+                ช่วยแนะนำแผนการท่องเที่ยวในจังหวัด {province} 
+                สำหรับจำนวน {days} วัน งบประมาณ {budget} 
+                และประเภทการเที่ยว {', '.join(activity_types)}
                 """
-                client = OpenAI(api_key=openai_api_key)
-                
-                # เรียก OpenAI API เพื่อสร้างรูปภาพ
-                generation_response = client.images.generate(
-                    model="dall-e-3",
-                    prompt=prompt,
-                    n=1,
-                    size="1024x1024",
+
+                chat_completion = groq_client.chat.completions.create(
+                    messages=[{"role": "user", "content": query}],
+                    model="llama-3.1-70b-versatile",
                 )
 
-                # ดึง URL ของรูปภาพ
-                image_url = generation_response.data[0].url
+                # Show Result
+                st.subheader("✨ แผนการท่องเที่ยวที่แนะนำ:")
+                st.markdown(
+                    f"<div class='result-box'><div style='color: black;'>{chat_completion.choices[0].message.content}</div></div>",
+                    unsafe_allow_html=True,
+                )
 
-                # ใช้รูปภาพที่สร้างเป็นพื้นหลัง
-                background_image_url = image_url
-                set_background(background_image_url)
+            except Exception as e:
+                st.error(f"เกิดข้อผิด: {e}")
 
-                # แสดงภาพที่สร้าง
-                st.image(image_url, caption=f"ภาพสถานที่ใน {province} ({activity_type})")
-
-        except Exception as e:
-            st.error(f"เกิดข้อผิดพลาด: {e}")
-
-# === ส่วนท้ายเว็บไซต์ ===
+# === Footer ===
 st.markdown(
     """
-    <hr style="border: 1px solid #ccc;">
-    <footer style="text-align: center; color: #ffffff; font-size: 0.9rem;">
-        © 2025 ระบบแนะนำแผนการท่องเที่ยว | พัฒนาโดย Yuki
+    <footer>
+        © 2025 ระบบแนะนำแผนการท่องเที่ยว | พัฒนาโดย 
     </footer>
     """,
     unsafe_allow_html=True,
