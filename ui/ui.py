@@ -81,7 +81,7 @@ st.markdown("<h1 class='header'>🌟 ระบบแนะนำแผนกา�
 
 # === Input Form ===
 with st.container():  # ใช้ container เป็นกล่องรอบคอลัมน์
-    st.markdown('<div class="form-container  !important;">',unsafe_allow_html=True)
+    st.markdown('<div class="form-container">',unsafe_allow_html=True)
 
     col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 1.5])
 
