@@ -90,33 +90,17 @@ with st.container():  # ใช้ container เป็นกล่องรอบ
         province = st.selectbox("", ["ขอนแก่น", "นครพนม", "นครศรีธรรมราช", "บุรีรัมย์", "เลย"])
 
     with col2:
-        st.markdown("<div class='distance'><i class='bi bi-calendar'></i> Days </div>", unsafe_allow_html=True,)
+        st.markdown("<div class='distance'><i class='bi bi-calendar'></i> Days </div>", unsafe_allow_html=True)
         days = st.number_input("", min_value=1, step=1, value=3, format="%d")
 
     with col3:
-        st.markdown(
-            """
-            <div class='distance'><i class='bi bi-compass'></i> Types</div></div>
-            <style>
-            .stExpander {
-                background-color: white !important;
-                border-radius: 8px;
-                margin-top: 30px;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-        with st.expander("Types"):
-            activity_nature = st.checkbox("ธรรมชาติ", key="activity_nature")
-            activity_city = st.checkbox("เมือง", key="activity_city")
-            activity_culture = st.checkbox("วัฒนธรรม", key="activity_culture")
-            activity_extreme = st.checkbox("เอกซ์ตรีม", key="activity_extreme")
-            activity_cafe = st.checkbox("ชิล ๆ คาเฟ่", key="activity_cafe")
+        st.markdown("<div class='distance'><i class='bi bi-compass'></i> Types</div></div>",unsafe_allow_html=True,)
+        activity_type = st.multiselect("", ["ธรรมชาติ", "เมือง", "วัฒนธรรม", "เอกซ์ตรีม", "ชิล ๆ คาเฟ่"])
 
     with col4:
         st.markdown("<div class='distance'><i class='bi bi-cash'></i> Price</div>", unsafe_allow_html=True)
         budget = st.selectbox("", ["Low to High", "Hight to Low"])
+        
 
     with col5:
         st.markdown("<div class='spacing'></div>", unsafe_allow_html=True)
@@ -125,29 +109,17 @@ with st.container():  # ใช้ container เป็นกล่องรอบ
 
 # === Process User Input ===
 if search:
-    if not province or not days or not (activity_nature or activity_city or activity_culture or activity_extreme or activity_cafe) or not budget:
+    if not province or not days or not activity_type or not budget:
         st.error("กรุณาเลือกข้อมูลให้ครบทุกช่องก่อนเริ่มค้นหา!")
     else:
         with st.spinner("กำลังประมวลผล..."):
             try:
-                activity_types = []
-                if activity_nature:
-                    activity_types.append("ธรรมชาติ")
-                if activity_city:
-                    activity_types.append("เมือง")
-                if activity_culture:
-                    activity_types.append("วัฒนธรรม")
-                if activity_extreme:
-                    activity_types.append("เอกซ์ตรีม")
-                if activity_cafe:
-                    activity_types.append("ชิล ๆ คาเฟ่")
-
+                # === สร้างข้อความคำถามสำหรับ Groq ===
                 query = f"""
                 ช่วยแนะนำแผนการท่องเที่ยวในจังหวัด {province} 
-                สำหรับจำนวน {days} วัน งบประมาณ {budget} 
-                และประเภทการเที่ยว {', '.join(activity_types)}
+                สำหรับจำนวน {days} วัน งบประมาณ {budget} บาท 
+                และประเภทการเที่ยว {', '.join(activity_type)}
                 """
-
                 chat_completion = groq_client.chat.completions.create(
                     messages=[{"role": "user", "content": query}],
                     model="llama-3.1-70b-versatile",
